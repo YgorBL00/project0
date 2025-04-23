@@ -5,6 +5,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
+import model.LinhaTabelaPainel;
 
 import static model.DadosCâmara.*;
 
@@ -119,13 +120,14 @@ public class PainelCalculoPaineisFX extends VBox {
     private void calcularPaineis() {
         try {
             // Salva os dados em DadosCâmara ao calcular painéis:
-            model.DadosCâmara.set(comprimento, largura, altura, espessura);
             double espessura = Double.parseDouble(tfEspessura.getText().replace(",", ".").trim());
             double largura = Double.parseDouble(tfLargura.getText().replace(",", ".").trim());
             double altura = Double.parseDouble(tfAltura.getText().replace(",", ".").trim());
             double comprimento = Double.parseDouble(tfComprimento.getText().replace(",", ".").trim());
             boolean temPiso = rbPisoSim.isSelected();
             double larguraPainel = Double.parseDouble(tfLarguraPainel.getText().replace(",", ".").trim());
+
+            model.DadosCâmara.set(comprimento, largura, altura, espessura);
 
             tabela.getItems().clear();
 
