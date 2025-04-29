@@ -5,6 +5,9 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import model.DadosCâmara;
+import model.RecomendacaoMotor;
+import model.UnidadeCondensadoras;
+
 import java.util.*;
 
 public class PainelCargaTermicaFX extends HBox {
@@ -17,7 +20,7 @@ public class PainelCargaTermicaFX extends HBox {
     // Isolamento
     private final ComboBox<String> cbIsolamento = new ComboBox<>();
     private final TextField tfCondutividade = new TextField();
-    private final Button btnConsideracoes = new Button("Considerações adicionais");
+    private final Button btnRecomendar = new Button("Recomendar Equipamentos");
 
     // Bloco Meio - Temperaturas e Produto
     private final TextField tfTempAmbiente = new TextField();
@@ -92,10 +95,9 @@ public class PainelCargaTermicaFX extends HBox {
 
         Region espaco = new Region();
         VBox.setVgrow(espaco, Priority.ALWAYS);
-        HBox botaoBox = new HBox(btnConsideracoes);
-        botaoBox.setAlignment(Pos.BOTTOM_LEFT);
 
-        box.getChildren().addAll(painelDimensao, painelIsolamento, espaco, botaoBox);
+
+        box.getChildren().addAll(painelDimensao, painelIsolamento, espaco);
         box.setAlignment(Pos.TOP_LEFT);
         atualizarCondutividade();
         return box;
@@ -143,10 +145,73 @@ public class PainelCargaTermicaFX extends HBox {
         Label titulo = titulo("Carga Térmica");
 
         Label sub = new Label("Carga térmica necessária (kcal/h):");
-        box.getChildren().addAll(titulo, sub, tfCargaTermica);
+
+        HBox botaoBox = new HBox(btnRecomendar);
+        botaoBox.setAlignment(Pos.BOTTOM_LEFT);
+
+        btnRecomendar.setOnAction(event -> {
+            try {
+                double tempDesejada = Double.parseDouble(tfTempDesejada.getText());
+                double cargaTermica = Double.parseDouble(tfCargaTermica.getText());
+
+                List<RecomendacaoMotor> recomendados = recomendarMotores(tempDesejada, cargaTermica);
+                mostrarResultados(recomendados);
+            } catch (Exception e) {
+                mostrarErro("Preencha corretamente os campos necessários.");
+            }
+        });
+
+        box.getChildren().addAll(titulo, sub, tfCargaTermica, botaoBox);
+
+
 
         return box;
     }
+
+    private List<RecomendacaoMotor> recomendarMotores(double tempDesejada, double cargaTermica) {
+        List<RecomendacaoMotor> recomendados = new ArrayList<>();
+
+        for (UnidadeCondensadoras motor : UnidadeCondensadoras.getListaMotores()) {
+            if (motor.getTemperaturaAplicacao() <= tempDesejada && motor.getCapacidade() >= cargaTermica * 1.1) {
+                // Adiciona o motor se ele atender à temperatura e tiver capacidade suficiente (com 10% de margem)
+                recomendados.add(new RecomendacaoMotor(motor.getModelo(), motor.getCapacidade()));
+            }
+        }
+
+        // Se não encontrar nenhum motor suficiente, pega o motor com maior capacidade
+        if (recomendados.isEmpty() && !UnidadeCondensadoras.getListaMotores().isEmpty()) {
+            UnidadeCondensadoras maiorMotor = Collections.max(UnidadeCondensadoras.getListaMotores(), Comparator.comparing(UnidadeCondensadoras::getCapacidade));
+            recomendados.add(new RecomendacaoMotor(maiorMotor.getModelo(), maiorMotor.getCapacidade()));
+        }
+
+        return recomendados;
+    }
+
+
+    private void mostrarResultados(List<RecomendacaoMotor> recomendados) {
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.setTitle("Equipamentos Recomendados");
+        alerta.setHeaderText("Baseado na carga térmica calculada:");
+
+        StringBuilder mensagem = new StringBuilder();
+        for (RecomendacaoMotor motor : recomendados) {
+            mensagem.append("- ").append(motor.getModelo()).append(" (")
+                    .append(String.format("%.0f", motor.getCapacidade())).append(" kcal/h)\n");
+        }
+
+        alerta.setContentText(mensagem.toString());
+        alerta.showAndWait();
+    }
+
+
+    private void mostrarErro(String mensagem) {
+        Alert alerta = new Alert(Alert.AlertType.ERROR);
+        alerta.setTitle("Erro");
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensagem);
+        alerta.showAndWait();
+    }
+
 
     private Label titulo(String txt) {
         Label lb = new Label(txt);
