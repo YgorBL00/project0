@@ -5,13 +5,14 @@ import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
 import ui.PainelCalculoPaineisFX;
 import ui.PainelCargaTermicaFX;
+import ui.PainelMaterialFX;
 
 public class JanelaAbasManualFX extends TabPane {
 
     public JanelaAbasManualFX(Stage stage) {
         Tab aba1 = new Tab("Cálculo de Painéis", new PainelCalculoPaineisFX());
         Tab aba2 = new Tab("Carga Térmica", new PainelCargaTermicaFX());
-        Tab aba3 = new Tab("Matérias", new javafx.scene.control.Label("Conteúdo da Aba 4"));
+        Tab aba3 = new Tab("Matérias", new PainelMaterialFX());
         Tab aba4 = new Tab("Ordem Serviço", new javafx.scene.control.Label("Conteúdo da Aba 4"));
 
         // NENHUMA aba pode ser fechada

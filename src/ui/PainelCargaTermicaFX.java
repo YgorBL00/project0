@@ -149,43 +149,13 @@ public class PainelCargaTermicaFX extends HBox {
         HBox botaoBox = new HBox(btnRecomendar);
         botaoBox.setAlignment(Pos.BOTTOM_LEFT);
 
-        btnRecomendar.setOnAction(event -> {
-            try {
-                double tempDesejada = Double.parseDouble(tfTempDesejada.getText());
-                double cargaTermica = Double.parseDouble(tfCargaTermica.getText());
-
-                List<RecomendacaoMotor> recomendados = recomendarMotores(tempDesejada, cargaTermica);
-                mostrarResultados(recomendados);
-            } catch (Exception e) {
-                mostrarErro("Preencha corretamente os campos necessários.");
-            }
-        });
 
         box.getChildren().addAll(titulo, sub, tfCargaTermica, botaoBox);
-
 
 
         return box;
     }
 
-    private List<RecomendacaoMotor> recomendarMotores(double tempDesejada, double cargaTermica) {
-        List<RecomendacaoMotor> recomendados = new ArrayList<>();
-
-        for (UnidadeCondensadoras motor : UnidadeCondensadoras.getListaMotores()) {
-            if (motor.getTemperaturaAplicacao() <= tempDesejada && motor.getCapacidade() >= cargaTermica * 1.1) {
-                // Adiciona o motor se ele atender à temperatura e tiver capacidade suficiente (com 10% de margem)
-                recomendados.add(new RecomendacaoMotor(motor.getModelo(), motor.getCapacidade()));
-            }
-        }
-
-        // Se não encontrar nenhum motor suficiente, pega o motor com maior capacidade
-        if (recomendados.isEmpty() && !UnidadeCondensadoras.getListaMotores().isEmpty()) {
-            UnidadeCondensadoras maiorMotor = Collections.max(UnidadeCondensadoras.getListaMotores(), Comparator.comparing(UnidadeCondensadoras::getCapacidade));
-            recomendados.add(new RecomendacaoMotor(maiorMotor.getModelo(), maiorMotor.getCapacidade()));
-        }
-
-        return recomendados;
-    }
 
 
     private void mostrarResultados(List<RecomendacaoMotor> recomendados) {
