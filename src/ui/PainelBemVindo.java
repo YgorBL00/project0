@@ -19,7 +19,6 @@ import model.JanelaAbasManualFX;
 public class PainelBemVindo extends BorderPane {
 
     public PainelBemVindo(Stage stage) {
-        setStyle("-fx-background-color: white;");
 
         // Topo: LOGO CENTRALIZADO
         VBox topo = new VBox();

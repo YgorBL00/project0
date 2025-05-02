@@ -127,7 +127,7 @@ public class PainelCalculoPaineisFX extends VBox {
             boolean temPiso = rbPisoSim.isSelected();
             double larguraPainel = Double.parseDouble(tfLarguraPainel.getText().replace(",", ".").trim());
 
-            model.DadosCâmara.set(comprimento, largura, altura, espessura);
+            model.DadosCâmara.setMedidas(comprimento, largura, altura, espessura);
 
             tabela.getItems().clear();
 
