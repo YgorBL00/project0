@@ -1,19 +1,17 @@
 package model;
 
+import java.util.Comparator;
+import java.util.Optional;
+
 public class RecomendacaoMotor {
-    private String modelo;
-    private double capacidade;
 
-    public RecomendacaoMotor(String modelo, double capacidade) {
-        this.modelo = modelo;
-        this.capacidade = capacidade;
-    }
-
-    public String getModelo() {
-        return modelo;
-    }
-
-    public double getCapacidade() {
-        return capacidade;
+    public static Optional<UnidadeCondensadoras> recomendarMotor(double temperaturaInterna, double cargaTermica) {
+        return UnidadeCondensadoras.getCatalogo().stream()
+                .filter(motor ->
+                        motor.getCapacidadeKcal() >= cargaTermica &&
+                                temperaturaInterna >= motor.getTemperaturaMin() &&
+                                temperaturaInterna <= motor.getTemperaturaMax()
+                )
+                .min(Comparator.comparingDouble(UnidadeCondensadoras::getCapacidadeKcal));
     }
 }

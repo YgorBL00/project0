@@ -5,34 +5,67 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import model.DadosCâmara;
+import model.Evaporadoras;
+import model.Item;
+import model.UnidadeCondensadoras;
 
 public class PainelMaterialFX extends SplitPane {
 
     private boolean listaVisivel = true;
+    private TableView<Item> tabela;
+    private Label lblCusto;
+    private Label lblSugerido;
+
 
     public PainelMaterialFX() {
         // ------------------ Parte da planilha -----------------------
-        TableView<Item> tabela = new TableView<>();
+        tabela = new TableView<>();
 
-        TableColumn<Item, String> coluna1 = new TableColumn<>("Nome");
-        coluna1.setCellValueFactory(new PropertyValueFactory<>("nome"));
+        TableColumn<Item, String> colunaNome = new TableColumn<>("Nome");
+        colunaNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
 
-        TableColumn<Item, Integer> coluna2 = new TableColumn<>("Quantidade");
-        coluna2.setCellValueFactory(new PropertyValueFactory<>("quantidade"));
+// Coluna modelo
+        TableColumn<Item, String> colunaModelo = new TableColumn<>("Modelo");
+        colunaModelo.setCellValueFactory(new PropertyValueFactory<>("modelo"));
 
-        tabela.getColumns().addAll(coluna1, coluna2);
-        for (int i = 1; i <= 20; i++) {
-            tabela.getItems().add(new Item("Item " + i, i * 5));
-        }
+// Coluna quantidade (já existe)
+        TableColumn<Item, Integer> colunaQuantidade = new TableColumn<>("Quantidade");
+        colunaQuantidade.setCellValueFactory(new PropertyValueFactory<>("quantidade"));
+
+// Coluna valor
+        TableColumn<Item, Double> colunaValor = new TableColumn<>("Valor");
+        colunaValor.setCellValueFactory(new PropertyValueFactory<>("valor"));
+        colunaValor.setCellFactory(col -> new TableCell<Item, Double>() {
+            @Override
+            protected void updateItem(Double valor, boolean empty) {
+                super.updateItem(valor, empty);
+                if (empty || valor == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("R$ %.2f", valor));
+                }
+            }
+        });
+
+// Adiciona todas
+        tabela.getColumns().addAll(colunaNome, colunaModelo, colunaQuantidade, colunaValor);
 
         Button btnValores = new Button("Valores");
         btnValores.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
         btnValores.setPadding(new Insets(6, 12, 6, 12));
+        
+
+        btnValores.setOnAction(e -> abrirJanelaItens1());
+
 
         Label titulo = new Label("Lista de materiais");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 14));
@@ -83,17 +116,18 @@ public class PainelMaterialFX extends SplitPane {
     -fx-background-radius: 8;
 """);
 
+
+
+
         Label lblCustoTitulo = new Label("Custo da câmara");
         lblCustoTitulo.setFont(Font.font("System", FontWeight.BOLD, 13));
 
-        double custoBase = 100.00;
-        Label lblCusto = new Label(String.format("R$ %.2f", custoBase));
+        lblCusto = new Label("R$ 0.00"); // inicial
 
         Label lblSugeridoTitulo = new Label("Valor de venda sugerido");
         lblSugeridoTitulo.setFont(Font.font("System", FontWeight.BOLD, 13));
 
-        double vendaSugerida = custoBase * 1.3;
-        Label lblSugerido = new Label(String.format("R$ %.2f (30%% de margem)", vendaSugerida));
+        lblSugerido = new Label("R$ 0.00 (30% de margem)");
 
         Label lblVendaTitulo = new Label("Valor da venda");
         lblVendaTitulo.setFont(Font.font("System", FontWeight.BOLD, 13));
@@ -110,8 +144,9 @@ public class PainelMaterialFX extends SplitPane {
         btnCalcular.setOnAction(e -> {
             try {
                 double venda = Double.parseDouble(campoVenda.getText());
-                double lucro = venda - custoBase;
-                double porcentagem = (lucro / custoBase) * 100;
+                double custoBaseAtual = calcularCustoTotal();
+                double lucro = venda - custoBaseAtual;
+                double porcentagem = custoBaseAtual > 0 ? (lucro / custoBaseAtual) * 100 : 0;
                 lblResultado.setText(String.format("Lucro: R$ %.2f\nMargem: %.1f%%", lucro, porcentagem));
             } catch (Exception ex) {
                 lblResultado.setText("Valor inválido.");
@@ -148,11 +183,111 @@ public class PainelMaterialFX extends SplitPane {
         painelLateral.getChildren().add(barraInferior2);
 
 // Ação do botão
-        btnCustos.setOnAction(e -> abrirJanelaCustos());
+        btnCustos.setOnAction(e -> abrirJanelaCustos2());
 
     }
 
-    private void abrirJanelaCustos() {
+
+    private double calcularCustoTotal() {
+        return tabela.getItems().stream()
+                .mapToDouble(Item::getValor)
+                .sum();
+    }
+    private void atualizarCusto() {
+        double custoBase = calcularCustoTotal();
+        lblCusto.setText(String.format("R$ %.2f", custoBase));
+        double vendaSugerida = custoBase * 1.3;
+        lblSugerido.setText(String.format("R$ %.2f (30%% de margem)", vendaSugerida));
+    }
+
+    public void adicionarRecomendadosNaTabela() {
+        tabela.getItems().removeIf(item ->
+                item.getNome().equals("Motor") || item.getNome().equals("Evaporadora"));
+
+        UnidadeCondensadoras motor = DadosCâmara.getMotorRecomendado();
+        System.out.println(motor.getPreco());
+        Evaporadoras evap = DadosCâmara.getEvaporadoraRecomendada();
+
+        if (motor != null) {
+            // Modelo e valor do banco:
+            tabela.getItems().add(
+                    new Item("Motor", motor.getModelo(), 1, motor.getPreco())
+            );
+        }
+        if (evap != null) {
+            tabela.getItems().add(
+                    new Item("Evaporadora", evap.getModelo(), 1, evap.getPreco())
+            );
+        }
+        atualizarCusto(); // <- ADICIONE ESTA LINHA
+    }
+
+    private void abrirJanelaItens() {
+        Stage popup = new Stage();
+        popup.setTitle("Itens Câmera Fria");
+
+        // Layout principal da janela
+        VBox conteudo = new VBox(10);
+        conteudo.setPadding(new Insets(15));
+        conteudo.setStyle("-fx-background-color: white;");
+
+        // Barra de título
+        HBox barraTitulo = new HBox();
+        barraTitulo.setStyle("-fx-background-color: #eeeeee; -fx-padding: 5;");
+        Label titulo = new Label("Itens Câmera Fria");
+        barraTitulo.getChildren().add(titulo);
+
+        // TableView para simular a lista estilo Excel
+        TableView<Item> tabela = new TableView<>();
+        TableColumn<Item, String> colunaNome = new TableColumn<>("Nome");
+        colunaNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
+        TableColumn<Item, Integer> colunaQuantidade = new TableColumn<>("Quantidade");
+        colunaQuantidade.setCellValueFactory(new PropertyValueFactory<>("quantidade"));
+        tabela.getColumns().addAll(colunaNome, colunaQuantidade);
+
+        // Adicionando alguns itens à tabela
+
+
+        // ScrollPane para dar o efeito de rolagem
+        ScrollPane scrollPane = new ScrollPane(tabela);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: transparent;");
+
+        // Botões de adicionar e remover
+        HBox botoes = new HBox(10);
+        Button btnAdicionar = new Button("Adicionar");
+        Button btnRemover = new Button("Remover");
+
+        // Estilizando os botões
+        btnAdicionar.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
+        btnRemover.setStyle("-fx-background-color: #F44336; -fx-text-fill: white;");
+
+        // Ações dos botões
+
+
+        btnRemover.setOnAction(ev -> {
+            // Ação de remover o item selecionado
+            Item selecionado = tabela.getSelectionModel().getSelectedItem();
+            if (selecionado != null) {
+                tabela.getItems().remove(selecionado);
+            }
+        });
+
+        botoes.getChildren().addAll(btnRemover, btnAdicionar);
+        botoes.setAlignment(Pos.CENTER);
+
+        // Adicionando tudo à janela
+        conteudo.getChildren().addAll(barraTitulo, scrollPane, botoes);
+
+        // Definindo a cena e exibindo a janela
+        Scene scene = new Scene(conteudo, 400, 400);
+        popup.setScene(scene);
+        popup.initModality(Modality.APPLICATION_MODAL);
+        popup.showAndWait();
+    }
+
+
+    private void abrirJanelaCustos2() {
         Stage popup = new Stage();
         popup.setTitle("Custos Operacionais");
 
@@ -201,19 +336,77 @@ public class PainelMaterialFX extends SplitPane {
     }
     public static class Item {
         private final String nome;
+        private final String modelo;
         private final int quantidade;
+        private final double valor;
 
-        public Item(String nome, int quantidade) {
+        public Item(String nome, String modelo, int quantidade, double valor) {
             this.nome = nome;
+            this.modelo = modelo;
             this.quantidade = quantidade;
+            this.valor = valor;
         }
 
-        public String getNome() {
-            return nome;
-        }
+        public String getNome() { return nome; }
+        public String getModelo() { return modelo; }
+        public int getQuantidade() { return quantidade; }
+        public double getValor() { return valor; }
+    }
+    private void abrirJanelaItens1() {
+        Stage popup = new Stage();
+        popup.setTitle("Itens Câmera Fria");
 
-        public int getQuantidade() {
-            return quantidade;
-        }
+        // Layout Horizontal: Tabela à esquerda, botão à direita
+        HBox conteudo = new HBox(10);
+        conteudo.setPadding(new Insets(15));
+        conteudo.setStyle("-fx-background-color: white;");
+
+        // Tabela
+        TableView<Item> tabelaEspelho = new TableView<>();
+        tabelaEspelho.setMinWidth(300);
+
+        TableColumn<Item, String> colunaNome = new TableColumn<>("Nome");
+        colunaNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
+
+        TableColumn<Item, String> colunaModelo = new TableColumn<>("Modelo");
+        colunaModelo.setCellValueFactory(new PropertyValueFactory<>("modelo"));
+
+        TableColumn<Item, Double> colunaValor = new TableColumn<>("Valor");
+        colunaValor.setCellValueFactory(new PropertyValueFactory<>("valor"));
+        colunaValor.setCellFactory(col -> new TableCell<Item, Double>() {
+            @Override
+            protected void updateItem(Double valor, boolean empty) {
+                super.updateItem(valor, empty);
+                if (empty || valor == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("R$ %.2f", valor));
+                }
+            }
+        });
+
+        tabelaEspelho.getColumns().addAll(colunaNome, colunaModelo, colunaValor);
+
+        // Sincroniza dados com a tabela principal
+        tabelaEspelho.getItems().addAll(tabela.getItems());
+
+        // Botão "Troca valores"
+        VBox boxBotao = new VBox();
+        boxBotao.setAlignment(Pos.TOP_CENTER);
+        Button btnTrocaValores = new Button("Troca valores");
+        btnTrocaValores.setStyle("-fx-background-color: #FFB300; -fx-text-fill: #222;");
+        btnTrocaValores.setOnAction(ev -> {
+            // Por ora, só mostra mensagem. Depois você faz a lógica de edição!
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Funcionalidade ainda não implementada!");
+            alert.showAndWait();
+        });
+        boxBotao.getChildren().add(btnTrocaValores);
+
+        conteudo.getChildren().addAll(tabelaEspelho, boxBotao);
+
+        Scene scene = new Scene(conteudo, 520, 300);
+        popup.setScene(scene);
+        popup.initModality(Modality.APPLICATION_MODAL);
+        popup.showAndWait();
     }
 }

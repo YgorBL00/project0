@@ -1,6 +1,7 @@
 package ui;
-import javafx.scene.layout.VBox;
+
 import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
 import model.DadosCâmara;
 
 public class PainelDadosCortinaFX extends VBox {

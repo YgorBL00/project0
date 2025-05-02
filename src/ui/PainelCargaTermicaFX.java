@@ -4,11 +4,14 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import model.DadosCâmara;
-import model.RecomendacaoMotor;
-import model.UnidadeCondensadoras;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
+import model.*;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PainelCargaTermicaFX extends HBox {
 
@@ -62,6 +65,13 @@ public class PainelCargaTermicaFX extends HBox {
 
         getChildren().addAll(blocoEsquerdo, blocoMeio, blocoDireito);
         atualizarDados();
+    }
+
+    // Em PainelCargaTermicaFX:
+    private PainelMaterialFX painelMaterialFX;
+
+    public void setPainelMaterialFX(PainelMaterialFX painelMaterialFX) {
+        this.painelMaterialFX = painelMaterialFX;
     }
 
     private VBox criarBlocoEsquerdo() {
@@ -150,37 +160,96 @@ public class PainelCargaTermicaFX extends HBox {
         botaoBox.setAlignment(Pos.BOTTOM_LEFT);
 
 
-        box.getChildren().addAll(titulo, sub, tfCargaTermica, botaoBox);
 
+        btnRecomendar.setOnAction(event -> {
+            try {
+                double tempDesejada = Double.parseDouble(tfTempDesejada.getText());
+                double cargaTermica = Double.parseDouble(tfCargaTermica.getText());
+
+                UnidadeCondensadoras motor = RecomendacaoMotor.recomendarMotor(tempDesejada, cargaTermica).get();
+                Evaporadoras evap = RecomendacaoEvaporadora.recomendarEvaporadoras(tempDesejada, cargaTermica).get(0);
+
+                DadosCâmara.setTemperaturaInterna(tempDesejada);
+                DadosCâmara.setCargaTermica(cargaTermica);
+                DadosCâmara.setMotorRecomendado(motor);
+                DadosCâmara.setEvaporadoraRecomendada(evap);
+
+                mostrarResultado(motor, evap);
+
+                // Chama o método NA INSTÂNCIA
+                System.out.println("Setou motor: " + motor);
+                System.out.println("Setou evaporadora: " + evap);
+                if (painelMaterialFX != null) {
+                    painelMaterialFX.adicionarRecomendadosNaTabela();
+                } else {
+                    System.out.println("painelMaterialFX é nulo");
+                }
+                System.out.println("Motor recomendado ao setar: " + motor);
+                System.out.println("Evap recomendada ao setar: " + evap);
+                DadosCâmara.setMotorRecomendado(motor);
+                DadosCâmara.setEvaporadoraRecomendada(evap);
+                System.out.println("Salvo em DadosCâmara!");
+
+
+
+
+
+            } catch (Exception e) {
+                mostrarErro("Preencha corretamente os campos necessários.");
+            }
+        });
+
+
+
+        box.getChildren().addAll(titulo, sub, tfCargaTermica, botaoBox);
 
         return box;
     }
 
 
 
-    private void mostrarResultados(List<RecomendacaoMotor> recomendados) {
-        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-        alerta.setTitle("Equipamentos Recomendados");
-        alerta.setHeaderText("Baseado na carga térmica calculada:");
-
-        StringBuilder mensagem = new StringBuilder();
-        for (RecomendacaoMotor motor : recomendados) {
-            mensagem.append("- ").append(motor.getModelo()).append(" (")
-                    .append(String.format("%.0f", motor.getCapacidade())).append(" kcal/h)\n");
-        }
-
-        alerta.setContentText(mensagem.toString());
-        alerta.showAndWait();
-    }
-
 
     private void mostrarErro(String mensagem) {
-        Alert alerta = new Alert(Alert.AlertType.ERROR);
-        alerta.setTitle("Erro");
-        alerta.setHeaderText(null);
-        alerta.setContentText(mensagem);
-        alerta.showAndWait();
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erro");
+        alert.setHeaderText(null);
+        alert.setContentText(mensagem);
+        alert.showAndWait();
     }
+
+
+    private void mostrarResultado(UnidadeCondensadoras motor, Evaporadoras evap) {
+        // Criar título da UC
+        Text ucTitulo = new Text("🔧 Unidade Condensadora:\n");
+        ucTitulo.setStyle("-fx-font-weight: bold; -fx-fill: #1e1e1e; -fx-font-size: 14;");
+
+        Text ucDados = new Text(String.format(
+                "Modelo: %s (%s HP)\nCapacidade: %.0f kcal/h\nTemperatura: %.0f a %.0f ºC\nTensão: %s\n\n",
+                motor.getModelo(), motor.getHP(), motor.getCapacidadeKcal(),
+                motor.getTemperaturaMin(), motor.getTemperaturaMax(), motor.getTensao()
+        ));
+
+        // Criar título da Evaporadora
+        Text evapTitulo = new Text("❄️ Evaporadora:\n");
+        evapTitulo.setStyle("-fx-font-weight: bold; -fx-fill: #1e1e1e; -fx-font-size: 14;");
+
+        Text evapDados = new Text(String.format(
+                "Modelo: %s (%s HP)\nCapacidade: %.0f kcal/h\nTemperatura: %.0f a %.0f ºC\nTensão: %s",
+                evap.getModelo(), evap.getHp(), evap.getCapacidadeKcal(),
+                evap.getTemperaturaMin(), evap.getTemperaturaMax(), evap.getTensao()
+        ));
+
+        TextFlow textFlow = new TextFlow(ucTitulo, ucDados, evapTitulo, evapDados);
+        textFlow.setPadding(new Insets(10));
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Recomendação Técnica");
+        dialog.getDialogPane().setContent(textFlow);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        dialog.showAndWait();
+    }
+
+
 
 
     private Label titulo(String txt) {

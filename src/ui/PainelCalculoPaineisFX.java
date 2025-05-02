@@ -3,11 +3,12 @@ package ui;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import model.LinhaTabelaPainel;
-
-import static model.DadosCâmara.*;
 
 public class PainelCalculoPaineisFX extends VBox {
 
@@ -127,7 +128,7 @@ public class PainelCalculoPaineisFX extends VBox {
             boolean temPiso = rbPisoSim.isSelected();
             double larguraPainel = Double.parseDouble(tfLarguraPainel.getText().replace(",", ".").trim());
 
-            model.DadosCâmara.set(comprimento, largura, altura, espessura);
+            model.DadosCâmara.setMedidas(comprimento, largura, altura, espessura);
 
             tabela.getItems().clear();
 
